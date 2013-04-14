@@ -13,6 +13,10 @@ namespace TraySysInfo
 	{
 		const string version = "0.1";
 		const string name = "TraySysInfo";
+		
+		// Очистка RAM
+		[System.Runtime.InteropServices.DllImport("psapi.dll", EntryPoint = "EmptyWorkingSet")]
+		private static extern bool EmptyWorkingSet(IntPtr hProcess);
 
 		private Timer timer;
 		private NotifyIcon notifyIcon;
@@ -41,8 +45,9 @@ namespace TraySysInfo
 	
 				notifyIcon = new NotifyIcon();
 	
-				//notifyIcon.DoubleClick += this.IconDoubleClick;
-				notifyIcon.Click += this.IconClick;
+				
+				notifyIcon.MouseClick += new MouseEventHandler(this.IconClick);
+				//notifyIcon.MouseDoubleClick += new MouseEventHandler(this.IconDoubleClick); //не работает(
 
 	    		Icon icon = this.DrawIcon();
 				notifyIcon.Icon = icon;
@@ -50,7 +55,7 @@ namespace TraySysInfo
 				
 				notifyIcon.Text = this.DrawText();
 
-				notifyIcon.ContextMenu = new ContextMenu(this.InitializeMenu());
+				notifyIcon.ContextMenu = this.InitializeMenu();
 				notifyIcon.Visible = true;
 			} catch (Exception e) {
 				MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -283,20 +288,55 @@ namespace TraySysInfo
 			regKey.Close();
 		}
 		
+		
+		/**
+		 * Чистим RAM
+		 */
+		private void CleanRam()
+		{
+			int yes = 0;
+			//int no = 0;
+			
+			foreach (Process p in Process.GetProcesses()) {
+				try{
+					EmptyWorkingSet(p.Handle);
+					yes++;
+				} catch (Exception/* e*/) {
+					//no++;
+				}
+            }
+
+			MessageBox.Show("Cleaned " + yes.ToString() + " processes", "Clean RAM", MessageBoxButtons.OK, MessageBoxIcon.Information);
+		}
+		
+		
+		/**
+		 * Показываем балун
+		 */
+		private void ShowBalloon()
+		{
+			notifyIcon.ShowBalloonTip(
+				5000,
+				name + " " + version,
+				"CPU: " + this.FormatCpuEx(cpu) + Environment.NewLine + "RAM: " + this.FormatRamEx(ram),
+				ToolTipIcon.Info
+			);
+		}
+		
 
 		/**
 		 * Инициализируем меню
 		 */
-		private MenuItem[] InitializeMenu()
+		private ContextMenu InitializeMenu()
 		{
 			MenuItem autoStartup = new MenuItem("Auto start", this.MenuAutoStartClick);
 			autoStartup.Checked = this.IsAutoStarted();
 
-			return new MenuItem[] {
+			return new ContextMenu(new MenuItem[] {
 				autoStartup,
 				new MenuItem("About", this.MenuAboutClick),
 				new MenuItem("Exit", this.MenuExitClick)
-			};
+			});
 		}
 		#endregion
 		
@@ -353,18 +393,22 @@ namespace TraySysInfo
 		}
 		
 
-		private void IconClick(object sender, EventArgs e) 
+		private void IconClick(object sender, MouseEventArgs e) 
 		{
-			MouseEventArgs args = e as MouseEventArgs;
-
-			if (args.Button != MouseButtons.Right) {
-			    notifyIcon.BalloonTipTitle = name + " " + version;
-			    notifyIcon.BalloonTipText = "CPU: " + this.FormatCpuEx(cpu) + Environment.NewLine + "RAM: " + this.FormatRamEx(ram);
-				notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
-	
-			    notifyIcon.ShowBalloonTip(5000);
+			if (e.Button == MouseButtons.Left) {
+				this.ShowBalloon();
+			} else if (e.Button == MouseButtons.Middle) {
+				this.CleanRam();
 			}
 		}
+		
+		
+		/*private void IconDoubleClick(object sender, MouseEventArgs e)
+		{
+			if (e.Button == MouseButtons.Left) {
+				this.CleanRam();
+			}
+		}*/
 		
 		
 		private void MenuAutoStartClick(object sender, EventArgs e)
@@ -375,13 +419,8 @@ namespace TraySysInfo
 				this.AddAutoStart();
 			}
 
-			notifyIcon.ContextMenu = new ContextMenu(this.InitializeMenu());
+			notifyIcon.ContextMenu = this.InitializeMenu();
 		}
-		
-		//private void IconDoubleClick(object sender, EventArgs e)
-		//{
-			//MessageBox.Show("The icon was double clicked");
-		//}
 		#endregion
 	}
 }
