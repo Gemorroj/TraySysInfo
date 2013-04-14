@@ -43,13 +43,17 @@ namespace TraySysInfo
 	
 				//notifyIcon.DoubleClick += this.IconDoubleClick;
 				notifyIcon.Click += this.IconClick;
-	
-	    		notifyIcon.Text = this.DrawText();
-				notifyIcon.Icon = this.DrawIcon();
+
+	    		Icon icon = this.DrawIcon();
+				notifyIcon.Icon = icon;
+				icon.Dispose();
+				
+				notifyIcon.Text = this.DrawText();
+
 				notifyIcon.ContextMenu = new ContextMenu(this.InitializeMenu());
 				notifyIcon.Visible = true;
 			} catch (Exception e) {
-				MessageBox.Show(e.Message);
+				MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				Application.Exit();
 			}
 		}
@@ -86,7 +90,14 @@ namespace TraySysInfo
 			graphics.DrawString(this.FormatCpu(cpu), font, brushCpu, cpuPoint);
 			graphics.DrawString(this.FormatRam(ram), font, brushRam, ramPoint);
 
-			return Icon.FromHandle(bitmap.GetHicon());
+			try {
+				IntPtr hIcon = bitmap.GetHicon();
+				return Icon.FromHandle(hIcon);
+			} catch (Exception e) {
+				MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+				Application.Exit();
+			}
+			return null;
 		}
 
 		
@@ -197,7 +208,7 @@ namespace TraySysInfo
 		 */
 		private string FormatCpu(float cpu)
 		{
-			return Math.Round(cpu, 1).ToString() + "%";
+			return Math.Round((decimal)cpu, 1).ToString() + "%";
 		}
 		
 
@@ -209,9 +220,9 @@ namespace TraySysInfo
 			if (ram < 1000) {
 				return ram.ToString() + "M";
 			} else if (ram < 10000) {
-				return Math.Round(ram / 1000, 1).ToString() + "G";
+				return Math.Round((decimal)(ram / 1000), 1).ToString() + "G";
 			} else {
-				return Math.Round(ram / 10000, 1).ToString() + "G";
+				return Math.Round((decimal)(ram / 10000), 1).ToString() + "G";
 			}
 		}
 		
@@ -221,7 +232,7 @@ namespace TraySysInfo
 		 */
 		private string FormatCpuEx(float cpu)
 		{
-			return Math.Round(cpu, 2).ToString() + " %";
+			return Math.Round((decimal)cpu, 2).ToString() + " %";
 		}
 		
 
@@ -233,7 +244,7 @@ namespace TraySysInfo
 			if (ram < 1000) {
 				return ram.ToString() + " M";
 			} else {
-				return Math.Round(ram / 1000, 3).ToString() + " G";
+				return Math.Round((decimal)(ram / 1000), 3).ToString() + " G";
 			}
 		}
 		
@@ -322,14 +333,17 @@ namespace TraySysInfo
 			cpu = this.GetCpu();
 			ram = this.GetRam();
 
-			notifyIcon.Icon = this.DrawIcon();
+			Icon icon = this.DrawIcon();
+			notifyIcon.Icon = icon;
+			icon.Dispose();
+
 			notifyIcon.Text = this.DrawText();
 		}
 		
 
 		private void MenuAboutClick(object sender, EventArgs e)
 		{
-			MessageBox.Show(name + " " + version + Environment.NewLine + "Powered by Gemorroj");
+			MessageBox.Show(name + " " + version + Environment.NewLine + "Powered by Gemorroj", name + " " + version, MessageBoxButtons.OK, MessageBoxIcon.Information);
 		}
 		
 
