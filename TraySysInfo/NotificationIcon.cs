@@ -57,8 +57,8 @@ namespace TraySysInfo
 
 				notifyIcon.ContextMenu = this.InitializeMenu();
 				notifyIcon.Visible = true;
-			} catch (Exception e) {
-				MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+			} catch (Exception/* exception*/) {
+				//MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				Application.Exit();
 			}
 		}
@@ -95,14 +95,7 @@ namespace TraySysInfo
 			graphics.DrawString(this.FormatCpu(cpu), font, brushCpu, cpuPoint);
 			graphics.DrawString(this.FormatRam(ram), font, brushRam, ramPoint);
 
-			try {
-				IntPtr hIcon = bitmap.GetHicon();
-				return Icon.FromHandle(hIcon);
-			} catch (Exception e) {
-				MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-				Application.Exit();
-			}
-			return null;
+			return Icon.FromHandle(bitmap.GetHicon());
 		}
 
 		
@@ -189,7 +182,7 @@ namespace TraySysInfo
 		{
 			try {
 				return cpuCounter.NextValue();
-			} catch (Exception/* e*/) {
+			} catch (Exception/* exception*/) {
 				return (float)-1;
 			}
 		}
@@ -202,7 +195,7 @@ namespace TraySysInfo
 		{
 			try {
 				return ramCounter.NextValue();
-			} catch (Exception/* e*/) {
+			} catch (Exception/* exception*/) {
 				return (float)-1;
 			}
 		}
@@ -301,7 +294,7 @@ namespace TraySysInfo
 				try{
 					EmptyWorkingSet(p.Handle);
 					yes++;
-				} catch (Exception/* e*/) {
+				} catch (Exception/* exception*/) {
 					//no++;
 				}
             }
@@ -333,6 +326,7 @@ namespace TraySysInfo
 			autoStartup.Checked = this.IsAutoStarted();
 
 			return new ContextMenu(new MenuItem[] {
+			    new MenuItem("Clean RAM", this.MenuCleanRamClick),
 				autoStartup,
 				new MenuItem("About", this.MenuAboutClick),
 				new MenuItem("Exit", this.MenuExitClick)
@@ -373,13 +367,27 @@ namespace TraySysInfo
 			cpu = this.GetCpu();
 			ram = this.GetRam();
 
-			Icon icon = this.DrawIcon();
-			notifyIcon.Icon = icon;
-			icon.Dispose();
+			try {
+				Icon icon = this.DrawIcon();
+				notifyIcon.Icon = icon;
+				icon.Dispose();
+			} catch (Exception exception) {
+				notifyIcon.ShowBalloonTip(
+					2000,
+					name + " " + version + " Error",
+					exception.Message,
+					ToolTipIcon.Warning
+				);
+			}
 
 			notifyIcon.Text = this.DrawText();
 		}
 		
+		
+		private void MenuCleanRamClick(object sender, EventArgs e)
+		{
+			this.CleanRam();
+		}
 
 		private void MenuAboutClick(object sender, EventArgs e)
 		{
@@ -397,9 +405,9 @@ namespace TraySysInfo
 		{
 			if (e.Button == MouseButtons.Left) {
 				this.ShowBalloon();
-			} else if (e.Button == MouseButtons.Middle) {
+			}/* else if (e.Button == MouseButtons.Middle) {
 				this.CleanRam();
-			}
+			}*/
 		}
 		
 		
