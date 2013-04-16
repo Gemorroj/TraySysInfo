@@ -95,7 +95,19 @@ namespace TraySysInfo
 			graphics.DrawString(this.FormatCpu(cpu), font, brushCpu, cpuPoint);
 			graphics.DrawString(this.FormatRam(ram), font, brushRam, ramPoint);
 
-			return Icon.FromHandle(bitmap.GetHicon());
+			return Icon.FromHandle(this.GetHicon());
+		}
+		
+		
+		private IntPtr GetHicon()
+		{
+			try {
+				return bitmap.GetHicon();
+			} catch (Exception/* exception*/) {
+				InitializeBitmap();
+				//FIXME:рекурсия
+				return this.GetHicon();
+			}
 		}
 
 		
