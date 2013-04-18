@@ -104,7 +104,8 @@ namespace TraySysInfo
 			try {
 				return bitmap.GetHicon();
 			} catch (Exception/* exception*/) {
-				InitializeBitmap();
+				//InitializeBitmap();
+				InitializeGraphics();
 				//FIXME:рекурсия
 				return this.GetHicon();
 			}
