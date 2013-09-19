@@ -1,7 +1,4 @@
-﻿/**
- * Gemorroj
- */
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Text;
@@ -11,7 +8,7 @@ namespace TraySysInfo
 {
 	public sealed class NotificationIcon
 	{
-		const string version = "0.1";
+		const string version = "0.2";
 		const string name = "TraySysInfo";
 		
 		// Очистка RAM
@@ -19,7 +16,8 @@ namespace TraySysInfo
 		private static extern bool EmptyWorkingSet(IntPtr hProcess);
 
 		private Timer timer;
-		private NotifyIcon notifyIcon;
+		private NotifyIcon notifyIconCpu;
+		private NotifyIcon notifyIconRam;
 		private PerformanceCounter cpuCounter;
         private PerformanceCounter ramCounter;
         private Bitmap bitmap;
@@ -43,36 +41,40 @@ namespace TraySysInfo
 				this.InitializeTimer();
 				
 	
-				notifyIcon = new NotifyIcon();
-	
-				
-				notifyIcon.MouseClick += new MouseEventHandler(this.IconClick);
-				//notifyIcon.MouseDoubleClick += new MouseEventHandler(this.IconDoubleClick); //не работает(
+				notifyIconCpu = new NotifyIcon();
+				notifyIconRam = new NotifyIcon();
 
-	    		Icon icon = this.DrawIcon();
-				notifyIcon.Icon = icon;
-				icon.Dispose();
-				
-				notifyIcon.Text = this.DrawText();
 
-				notifyIcon.ContextMenu = this.InitializeMenu();
-				notifyIcon.Visible = true;
-			} catch (Exception/* exception*/) {
-				//MessageBox.Show(e.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+	    		Icon iconCpu = this.DrawIconCpu();
+	    		Icon iconRam = this.DrawIconRam();
+				notifyIconCpu.Icon = iconCpu;
+				notifyIconRam.Icon = iconRam;
+				iconCpu.Dispose();
+				iconRam.Dispose();
+				
+				String text = this.DrawText();
+				notifyIconCpu.Text = text;
+				notifyIconRam.Text = text;
+
+				notifyIconCpu.ContextMenu = this.InitializeMenu();
+				notifyIconRam.ContextMenu = this.InitializeMenu();
+				notifyIconCpu.Visible = true;
+				notifyIconRam.Visible = true;
+			} catch (Exception exception) {
+				//MessageBox.Show(exception.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
 				Application.Exit();
 			}
 		}
 		
 		
 		/**
-		 * Рисуем заначения CPU и RAM на иконке
+		 * Рисуем заначения CPU на иконке
 		 */
-		private Icon DrawIcon()
+		private Icon DrawIconCpu()
 		{
 			graphics.Clear(Color.Transparent);
 			
 			Brush brushCpu;
-			Brush brushRam;
 			
 			if (cpu > 50) {
 				brushCpu = Brushes.Red;
@@ -82,6 +84,20 @@ namespace TraySysInfo
 				brushCpu = Brushes.Black;
 			}
 			
+			graphics.DrawString(this.FormatCpu(cpu), font, brushCpu, cpuPoint);
+
+			return Icon.FromHandle(this.GetHicon());
+		}
+		
+		
+		/**
+		 * Рисуем заначения RAM на иконке
+		 */
+		private Icon DrawIconRam()
+		{
+			graphics.Clear(Color.Transparent);
+			
+			Brush brushRam;
 			
 			if (ram < 500) {
 				brushRam = Brushes.Yellow;
@@ -91,24 +107,17 @@ namespace TraySysInfo
 				brushRam = Brushes.Black;
 			}
 			
-			
-			graphics.DrawString(this.FormatCpu(cpu), font, brushCpu, cpuPoint);
 			graphics.DrawString(this.FormatRam(ram), font, brushRam, ramPoint);
 
 			return Icon.FromHandle(this.GetHicon());
 		}
-		
-		
+
+		/**
+		 * Получаем палитру
+		 */
 		private IntPtr GetHicon()
 		{
-			try {
-				return bitmap.GetHicon();
-			} catch (Exception/* exception*/) {
-				//InitializeBitmap();
-				InitializeGraphics();
-				//FIXME:рекурсия
-				return this.GetHicon();
-			}
+			return bitmap.GetHicon();
 		}
 
 		
@@ -139,8 +148,8 @@ namespace TraySysInfo
 		 */
 		private void InitializePoints()
 		{
-			cpuPoint = new PointF(0, 0);
-			ramPoint = new PointF(0, 7);
+			cpuPoint = new PointF(0, 2);
+			ramPoint = new PointF(0, 2);
 		}
 		
 		
@@ -161,7 +170,7 @@ namespace TraySysInfo
 		 */
 		private void InitializeFont()
 		{
-			font = new Font("Calibri", 6, FontStyle.Regular, GraphicsUnit.Point);
+			font = new Font("Calibri", 8, FontStyle.Bold, GraphicsUnit.Point);
 		}
 
 
@@ -173,8 +182,8 @@ namespace TraySysInfo
 			graphics = Graphics.FromImage(bitmap);
 			
 
-			graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-			//graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
+			//graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+			graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
 		}
 	
 		
@@ -219,7 +228,7 @@ namespace TraySysInfo
 		 */
 		private string FormatCpu(float cpu)
 		{
-			return Math.Round((decimal)cpu, 1).ToString() + "%";
+			return Math.Round((decimal)cpu, 1).ToString()/* + "%"*/;
 		}
 		
 
@@ -229,11 +238,11 @@ namespace TraySysInfo
 		private string FormatRam(float ram)
 		{
 			if (ram < 1000) {
-				return ram.ToString() + "M";
+				return ram.ToString()/* + "M"*/;
 			} else if (ram < 10000) {
-				return Math.Round((decimal)(ram / 1000), 1).ToString() + "G";
+				return Math.Round((decimal)(ram / 1000), 1).ToString()/* + "G"*/;
 			} else {
-				return Math.Round((decimal)(ram / 10000), 1).ToString() + "G";
+				return Math.Round((decimal)(ram / 10000), 1).ToString()/* + "G"*/;
 			}
 		}
 		
@@ -315,20 +324,6 @@ namespace TraySysInfo
 			MessageBox.Show("Cleaned " + yes.ToString() + " processes", "Clean RAM", MessageBoxButtons.OK, MessageBoxIcon.Information);
 		}
 		
-		
-		/**
-		 * Показываем балун
-		 */
-		private void ShowBalloon()
-		{
-			notifyIcon.ShowBalloonTip(
-				5000,
-				name + " " + version,
-				"CPU: " + this.FormatCpuEx(cpu) + Environment.NewLine + "RAM: " + this.FormatRamEx(ram),
-				ToolTipIcon.Info
-			);
-		}
-		
 
 		/**
 		 * Инициализируем меню
@@ -361,7 +356,8 @@ namespace TraySysInfo
 			Application.Run();
 
 			notificationIcon.timer.Dispose();
-			notificationIcon.notifyIcon.Dispose();
+			notificationIcon.notifyIconCpu.Dispose();
+			notificationIcon.notifyIconRam.Dispose();
 			notificationIcon.cpuCounter.Dispose();
 			notificationIcon.ramCounter.Dispose();
 			notificationIcon.bitmap.Dispose();
@@ -381,19 +377,18 @@ namespace TraySysInfo
 			ram = this.GetRam();
 
 			try {
-				Icon icon = this.DrawIcon();
-				notifyIcon.Icon = icon;
-				icon.Dispose();
+				String text = this.DrawText();
+				Icon iconCpu = this.DrawIconCpu();
+				Icon iconRam = this.DrawIconRam();
+				notifyIconCpu.Icon = iconCpu;
+				notifyIconRam.Icon = iconRam;
+				notifyIconCpu.Text = text;
+				notifyIconRam.Text = text;
+				iconCpu.Dispose();
+				iconRam.Dispose();
 			} catch (Exception exception) {
-				notifyIcon.ShowBalloonTip(
-					2000,
-					name + " " + version + " Error",
-					exception.Message,
-					ToolTipIcon.Warning
-				);
+				//
 			}
-
-			notifyIcon.Text = this.DrawText();
 		}
 		
 		
@@ -413,24 +408,6 @@ namespace TraySysInfo
 			Application.Exit();
 		}
 		
-
-		private void IconClick(object sender, MouseEventArgs e) 
-		{
-			if (e.Button == MouseButtons.Left) {
-				this.ShowBalloon();
-			}/* else if (e.Button == MouseButtons.Middle) {
-				this.CleanRam();
-			}*/
-		}
-		
-		
-		/*private void IconDoubleClick(object sender, MouseEventArgs e)
-		{
-			if (e.Button == MouseButtons.Left) {
-				this.CleanRam();
-			}
-		}*/
-		
 		
 		private void MenuAutoStartClick(object sender, EventArgs e)
 		{
@@ -440,7 +417,8 @@ namespace TraySysInfo
 				this.AddAutoStart();
 			}
 
-			notifyIcon.ContextMenu = this.InitializeMenu();
+			notifyIconCpu.ContextMenu = this.InitializeMenu();
+			notifyIconRam.ContextMenu = this.InitializeMenu();
 		}
 		#endregion
 	}
